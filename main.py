@@ -1,47 +1,31 @@
-import platform
-import psutil
 import subprocess
-import json
 
-def get_cpu_frequency():
+def get_lscpu_info():
     try:
-        with open("/proc/cpuinfo") as f:
-            for line in f:
-                if "MHz" in line:
-                    # Convert MHz to GHz
-                    return f"{float(line.split(':')[1].strip()) / 1000} GHz"
+        # Run the lscpu command
+        result = subprocess.run(['lscpu'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        # Check if the command was successful
+        if result.returncode != 0:
+            print(f"Error running lscpu: {result.stderr}")
+            return None
+        
+        # Parse the output
+        lscpu_output = result.stdout
+        lscpu_info = {}
+        for line in lscpu_output.splitlines():
+            if ':' in line:
+                key, value = line.split(':')
+                lscpu_info[key.strip()] = value.strip()
+        
+        return lscpu_info
     except Exception as e:
-        return str(e)
-    return "N/A"
-
-def get_memory_info():
-    try:
-        result = subprocess.run(['free', '-h'], stdout=subprocess.PIPE, text=True)
-        return result.stdout
-    except Exception as e:
-        return str(e)
-
-def get_server_info():
-    cpu_freq = psutil.cpu_freq()
-    info = {
-        "system": platform.system(),
-        "node_name": platform.node(),
-        "release": platform.release(),
-        "version": platform.version(),
-        "machine": platform.machine(),
-        "processor": platform.processor(),
-        "cpu_count": psutil.cpu_count(logical=False),
-        "logical_cpus": psutil.cpu_count(logical=True),
-        "cpu_freq": cpu_freq._asdict() if cpu_freq else get_cpu_frequency(),
-        "memory": psutil.virtual_memory()._asdict(),
-        "swap_memory": psutil.swap_memory()._asdict(),
-        "disk_partitions": [p._asdict() for p in psutil.disk_partitions()],
-        "disk_usage": {p.mountpoint: psutil.disk_usage(p.mountpoint)._asdict() for p in psutil.disk_partitions()},
-        "network_interfaces": {k: v[0]._asdict() for k, v in psutil.net_if_addrs().items()},
-        "detailed_memory_info": get_memory_info(),
-    }
-    return info
+        print(f"An error occurred: {e}")
+        return None
 
 if __name__ == "__main__":
-    server_info = get_server_info()
-    print(json.dumps(server_info, indent=4))
+    info = get_lscpu_info()
+    if info:
+        print("lscpu information:")
+        for key, value in info.items():
+            print(f"{key}: {value}")
