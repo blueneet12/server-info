@@ -3,6 +3,7 @@ import psutil
 import json
 
 def get_server_info():
+    cpu_freq = psutil.cpu_freq()
     info = {
         "system": platform.system(),
         "node_name": platform.node(),
@@ -12,7 +13,7 @@ def get_server_info():
         "processor": platform.processor(),
         "cpu_count": psutil.cpu_count(logical=False),
         "logical_cpus": psutil.cpu_count(logical=True),
-        "cpu_freq": psutil.cpu_freq()._asdict(),
+        "cpu_freq": cpu_freq._asdict() if cpu_freq else "N/A",
         "memory": psutil.virtual_memory()._asdict(),
         "disk_partitions": [p._asdict() for p in psutil.disk_partitions()],
         "disk_usage": {p.mountpoint: psutil.disk_usage(p.mountpoint)._asdict() for p in psutil.disk_partitions()},
